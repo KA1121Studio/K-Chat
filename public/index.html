@@ -1,0 +1,330 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ホーム</title>
+  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/1/19/Google_Classroom_Logo.svg" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--theme);
+    }
+    .container {
+      padding: 16px;
+    }
+    #homeScreen {
+      position: relative;
+      z-index: 1;
+    }
+    #topBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    #roomList {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0;
+    }
+    #roomList li {
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #addRoomBtn {
+      font-size: 26px;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+    #userNameDisplay {
+      margin-right: 12px;
+    }
+
+    /* ポップアップ共通 */
+    #popup, #namePopup, #mediaPopup, #roomSettingsPopup,
+    #alertBox, #confirmBox, #promptBox, #roomCreateBox, #roomJoinBox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    #popup[style*="display: flex"],
+    #namePopup[style*="display: flex"],
+    #mediaPopup[style*="display: flex"],
+    #roomSettingsPopup[style*="display: flex"],
+    #alertBox[style*="display: flex"],
+    #confirmBox[style*="display: flex"],
+    #promptBox[style*="display: flex"],
+    #roomCreateBox[style*="display: flex"],
+    #roomJoinBox[style*="display: flex"] {
+      pointer-events: auto;
+    }
+    .popupBox {
+      background: white;
+      padding: 18px;
+      border-radius: 10px;
+      width: 320px;
+      text-align: center;
+    }
+    #chatScreen {
+      display: none;
+      height: 100vh;
+      flex-direction: column;
+      padding: 16px;
+    }
+    #chatHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    #chatArea {
+      padding: 12px;
+      height: 60vh;
+      overflow-y: auto;
+      background: #fafafa;
+    }
+    .bubble {
+      padding: 10px 12px;
+      margin: 6px 0;
+      border-radius: 16px;
+      max-width: 70%;
+      display: inline-block;
+    }
+    .left {
+      background: white;
+      border: 1px solid #eee;
+      border-bottom-left-radius: 4px;
+    }
+    .right {
+      background: #d3f0ff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    #chatControls {
+      display: flex;
+      gap: 8px;
+      padding: 10px 0;
+      border-top: 1px solid #eee;
+    }
+    input[type="text"] {
+      padding: 8px;
+      flex: 1;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+    button { cursor: pointer; }
+    .small { font-size: 14px; padding: 6px 8px; }
+    #versionLabel {
+      position: fixed; right: 16px; bottom: 12px;
+      font-size: 17px; font-weight: bold; color: #555;
+      opacity: 0.9; pointer-events: none;
+    }
+    #chatScreen[style*="display: block"] ~ #versionLabel {
+      display: none;
+    }
+    #userSettingsPopup .popupBox {
+      width: 90vw; max-width: 600px; max-height: 85vh;
+    }
+    #termsPopup .popupBox, #privacyPopup .popupBox {
+      width: 90vw; max-width: 700px; max-height: 85vh;
+    }
+    :root { --theme: #f5f5f5; }
+
+    /* カスタムモーダル用 */
+    .modal-buttons { margin-top: 12px; }
+    .modal-buttons button { margin: 0 4px; }
+  </style>
+</head>
+<body>
+  <!-- ユーザー設定 -->
+  <div id="userSettingsPopup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); justify-content:center; align-items:center; z-index:9999;">
+    <div class="popupBox" style="text-align:left; max-height:80vh; overflow:auto;">
+      <h3>設定</h3>
+      <label><input type="checkbox" id="darkModeToggle"> ダークモード</label><br><br>
+      <label><input type="checkbox" id="noticeToggle"> お知らせを表示</label><br><br>
+      <label><input type="checkbox" id="enterSendToggle"> Enterで送信</label><br><br>
+      <label><input type="checkbox" id="timeToggle"> 時刻を表示</label><br><br>
+      <label>テーマカラー <input type="color" id="themeColorPicker"></label><br><br>
+      <label>文字サイズ <input type="range" id="fontSizeRange" min="12" max="20"></label><br><br>
+      <button id="changeNameBtn" class="small">名前を変更</button><br><br>
+      <button id="changeAvatarBtn" class="small">アイコンURL変更</button><br><br>
+      <button id="openTermsBtn" class="small">利用規約</button><br><br>
+      <button id="openPrivacyBtn" class="small">プライバシーポリシー</button><br><br>
+      <button onclick="closeUserSettings()" class="small">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 利用規約 -->
+  <div id="termsPopup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:10000;">
+    <div class="popupBox" style="max-width:500px; max-height:80vh; overflow:auto; text-align:left;">
+      <h3>利用規約</h3>
+      <p style="font-size:14px; line-height:1.7;">（規約本文省略）</p>
+      <button id="agreeTermsBtn" class="small" style="width:100%;">同意する</button>
+    </div>
+  </div>
+
+  <!-- プライバシーポリシー -->
+  <div id="privacyPopup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:10000;">
+    <div class="popupBox" style="max-width:500px; max-height:80vh; overflow:auto; text-align:left;">
+      <h3>プライバシーポリシー</h3>
+      <p style="font-size:14px; line-height:1.7;">（本文省略）</p>
+      <button id="agreePrivacyBtn" class="small" style="width:100%;">同意する</button>
+    </div>
+  </div>
+
+  <!-- カスタムアラート -->
+  <div id="alertBox">
+    <div class="popupBox">
+      <p id="alertMessage"></p>
+      <button id="alertOkBtn" class="small">OK</button>
+    </div>
+  </div>
+
+  <!-- カスタム確認 -->
+  <div id="confirmBox">
+    <div class="popupBox">
+      <p id="confirmMessage"></p>
+      <div class="modal-buttons">
+        <button id="confirmYesBtn" class="small">はい</button>
+        <button id="confirmNoBtn" class="small">いいえ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- カスタムプロンプト -->
+  <div id="promptBox">
+    <div class="popupBox">
+      <p id="promptMessage"></p>
+      <input id="promptInput" type="text" style="width:90%; padding:6px;">
+      <div class="modal-buttons">
+        <button id="promptOkBtn" class="small">OK</button>
+        <button id="promptCancelBtn" class="small">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ルーム作成用モーダル -->
+  <div id="roomCreateBox">
+    <div class="popupBox">
+      <h3>新規ルーム作成</h3>
+      <input id="roomNameInput" type="text" placeholder="ルーム名" style="width:90%; padding:6px;"><br><br>
+      <input id="roomPasswordInput" type="text" placeholder="パスワード（任意）" style="width:90%; padding:6px;"><br><br>
+      <div class="modal-buttons">
+        <button id="roomCreateOkBtn" class="small">作成</button>
+        <button id="roomCreateCancelBtn" class="small">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ルーム参加用モーダル（コード入力） -->
+  <div id="roomJoinBox">
+    <div class="popupBox">
+      <h3>ルームに参加</h3>
+      <input id="roomCodeInput" type="text" placeholder="ルームコード" style="width:90%; padding:6px;"><br><br>
+      <div class="modal-buttons">
+        <button id="roomJoinOkBtn" class="small">参加</button>
+        <button id="roomJoinCancelBtn" class="small">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ルーム設定 -->
+  <div id="roomSettingsPopup">
+    <div class="popupBox">
+      <h3>ルーム設定</h3>
+      <div id="roomSettingsInfo" style="text-align:left; font-size:14px;"></div>
+      <hr style="margin:12px 0;">
+      <button id="leaveRoomFromSettings" class="small" style="background:#ff4b4b; color:white;">退会</button>
+      <br><br>
+      <button onclick="closeRoomSettings()" class="small">閉じる</button>
+    </div>
+  </div>
+
+  <div class="container" id="homeScreen">
+    <div id="topBar">
+      <h2 style="margin:0;">ルーム一覧</h2>
+      <div style="display:flex; align-items:center;">
+        <span id="userNameDisplay"></span>
+        <img id="userAvatarDisplay" src="" style="width:30px; height:30px; border-radius:50%; margin-left:4px; display:none;">
+        <button id="settingsBtn" class="small">⚙</button>
+        <button id="addRoomBtn" class="small">＋</button>
+      </div>
+    </div>
+    <div id="noticeBox" style="margin-top:10px; padding:10px 36px 10px 10px; background:#fffbe6; border:1px solid #ffe58f; border-radius:8px; font-size:14px; display:none; white-space: pre-line; position: relative;">
+      <span id="closeNoticeBtn" style="position:absolute; top:6px; right:10px; cursor:pointer; font-weight:bold; color:#999; font-size:40px;">×</span>
+      <span id="noticeText"></span>
+    </div>
+    <ul id="roomList"></ul>
+    <div id="roomCodeDisplay" style="display:none; margin-top:10px; font-size:15px;"></div>
+  </div>
+
+  <div id="chatScreen">
+    <div id="chatHeader">
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button id="backBtn" class="small">← 戻る</button>
+        <h3 id="roomTitle" style="margin:0;"></h3>
+      </div>
+      <div id="roomInfo"></div>
+    </div>
+    <div id="chatArea"></div>
+    <div id="chatControls">
+      <button id="mediaBtn">＋</button>
+      <input id="chatInput" type="text" placeholder="メッセージを入力" />
+      <button id="sendBtn">送信</button>
+    </div>
+  </div>
+
+  <div id="mediaPopup">
+    <div class="popupBox">
+      <h3>画像URLを追加</h3>
+      <input id="imageUrlInput" type="text" placeholder="画像URL" style="width:90%; padding:6px;"><br><br>
+      <img id="imagePreview" style="max-width:100%; display:none; border-radius:8px;"><br><br>
+      <button id="closeMediaBtn" class="small">閉じる</button>
+    </div>
+  </div>
+
+  <div id="popup">
+    <div class="popupBox">
+      <h3>メニュー</h3>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button id="btnCreateRoom" class="small">ルームを作成</button>
+        <button id="btnJoinRoom" class="small">ルームに参加</button>
+        <button id="closePopupBtn" class="small">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="namePopup">
+    <div class="popupBox">
+      <h3>名前を決めてください</h3>
+      <input id="nameInput" type="text" placeholder="あなたの名前" style="width:90%; padding:8px; margin-bottom:8px;">
+      <input id="avatarUrlInput" type="text" placeholder="アイコン画像URL（任意）" style="width:90%; padding:8px; margin-bottom:8px;">
+      <button id="saveNameBtn" class="small">決定</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+  <div id="versionLabel">v4.0.0</div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+</body>
+</html>
