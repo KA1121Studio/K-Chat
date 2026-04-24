@@ -19,7 +19,7 @@
   <div id="loginBox" style="display:block;">
     <h2>管理者ログイン</h2>
     <input type="password" id="adminPassword" placeholder="パスワード" style="width:100%; padding:8px;">
-    <button onclick="login()" style="margin-top:8px;">ログイン</button>
+    <button id="loginButton" style="margin-top:8px;">ログイン</button>
     <p id="loginError" style="color:red;"></p>
   </div>
 
@@ -30,81 +30,9 @@
     </table>
     <h2>お知らせ編集</h2>
     <textarea id="noticeInput" style="width:100%; height:80px;"></textarea><br><br>
-    <button onclick="saveNotice()">保存</button>
+    <button id="saveNoticeButton">保存</button>
   </div>
 
-  <script>
-    let authToken = '';
-
-    async function login() {
-      const password = document.getElementById('adminPassword').value;
-      const res = await fetch('/admin/login', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ password })
-      });
-      if (!res.ok) {
-        document.getElementById('loginError').textContent = 'パスワードが違います';
-        return;
-      }
-      const data = await res.json();
-      authToken = data.token;
-      document.getElementById('loginBox').style.display = 'none';
-      document.getElementById('adminContent').style.display = 'block';
-      loadRooms();
-      loadNotice();
-    }
-
-    async function loadRooms() {
-      const res = await fetch('/rooms');
-      const rooms = await res.json();
-      const table = document.getElementById('roomTable');
-      table.innerHTML = '<tr><th>ID</th><th>ルーム名</th><th>作成者</th><th>作成日時</th><th>削除</th></tr>';
-      rooms.forEach(room => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${room.id}</td>
-          <td>${room.name}</td>
-          <td>${room.creator || '-'}</td>
-          <td>${new Date(room.created_at).toLocaleString()}</td>
-          <td><button onclick="deleteRoom(${room.id})">削除</button></td>
-        `;
-        table.appendChild(tr);
-      });
-    }
-
-    async function deleteRoom(id) {
-      if (!confirm('本当に削除しますか？')) return;
-      const res = await fetch('/rooms/' + id, {
-        method: 'DELETE',
-        headers: { 'x-admin-token': authToken }
-      });
-      if (res.ok) {
-        alert('削除しました');
-        loadRooms();
-      } else {
-        alert('削除失敗');
-      }
-    }
-
-    async function loadNotice() {
-      const res = await fetch('/notice');
-      const data = await res.json();
-      document.getElementById('noticeInput').value = data.content || '';
-    }
-
-    async function saveNotice() {
-      const content = document.getElementById('noticeInput').value;
-      await fetch('/notice', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': authToken
-        },
-        body: JSON.stringify({ content })
-      });
-      alert('保存しました');
-    }
-  </script>
+  <script src="admin.js"></script>
 </body>
 </html>
