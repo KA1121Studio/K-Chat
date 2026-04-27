@@ -540,6 +540,7 @@ window.addEventListener('DOMContentLoaded', () => {
 async function loadNotice() {
   const res = await fetch('/notice');
   const data = await res.json();
+  console.log(JSON.stringify(data.content));
 
   if (!data?.content) return;
 
