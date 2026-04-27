@@ -540,15 +540,19 @@ window.addEventListener('DOMContentLoaded', () => {
 async function loadNotice() {
   const res = await fetch('/notice');
   const data = await res.json();
-  if (data?.content) {
-    if (localStorage.getItem('noticeHidden') === 'true') return;
-    document.getElementById('noticeText').textContent = data.content;
-    document.getElementById('noticeBox').style.display = 'block';
-    document.getElementById('closeNoticeBtn').onclick = () => {
-      document.getElementById('noticeBox').style.display = 'none';
-      localStorage.setItem('noticeHidden', 'true');
-    };
-  }
+
+  if (!data?.content) return;
+
+  // 設定がオフなら表示しない
+  if (localStorage.getItem('noticeHidden') === 'true') return;
+
+  document.getElementById('noticeText').textContent = data.content;
+  document.getElementById('noticeBox').style.display = 'block';
+
+  // ×は「その場だけ閉じる」
+  document.getElementById('closeNoticeBtn').onclick = () => {
+    document.getElementById('noticeBox').style.display = 'none';
+  };
 }
 
 // ===== ルーム設定 =====
