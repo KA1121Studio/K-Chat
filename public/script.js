@@ -546,7 +546,7 @@ async function loadNotice() {
   // 設定がオフなら表示しない
   if (localStorage.getItem('noticeHidden') === 'true') return;
 
-  document.getElementById('noticeText').textContent = data.content;
+  document.getElementById('noticeText').textContent = data.content.trim();
   document.getElementById('noticeBox').style.display = 'block';
 
   // ×は「その場だけ閉じる」
