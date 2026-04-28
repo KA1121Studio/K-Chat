@@ -203,4 +203,6 @@ io.on('connection', (socket) => {
   io.to(String(data.roomId)).emit('message', msg);
 });
 
+  }); 
+
 server.listen(port, () => console.log(`Server running on port ${port}`));
