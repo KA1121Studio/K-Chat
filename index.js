@@ -123,12 +123,22 @@ app.post('/rooms/:id/check-password', async (req, res) => {
 
 app.get('/rooms/:id/messages', async (req, res) => {
   const roomId = Number(req.params.id);
+
   const { data, error } = await supabase
     .from('messages')
-    .select('*')
+    .select(`
+      *,
+      users (
+        id,
+        name,
+        avatar_url
+      )
+    `)
     .eq('room_id', roomId)
     .order('time', { ascending: true });
+
   if (error) return res.status(500).json({ error });
+
   res.json(data);
 });
 
@@ -180,17 +190,17 @@ io.on('connection', (socket) => {
     socket.leave(String(roomId));
   });
   socket.on('message', async (data) => {
-    const msg = {
-      id: Date.now(),
-      room_id: Number(data.roomId),
-      author: data.author,
-      text: data.text,
-      image: data.image || null,
-      time: new Date().toISOString()
-    };
-    await supabase.from('messages').insert(msg);
-    io.to(String(data.roomId)).emit('message', msg);
-  });
+  const msg = {
+    id: Date.now(),
+    room_id: Number(data.roomId),
+    user_id: data.user_id,
+    text: data.text,
+    image: data.image || null,
+    time: new Date().toISOString()
+  };
+
+  await supabase.from('messages').insert(msg);
+  io.to(String(data.roomId)).emit('message', msg);
 });
 
 server.listen(port, () => console.log(`Server running on port ${port}`));
