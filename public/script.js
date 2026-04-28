@@ -175,42 +175,47 @@ async function loadChat(roomId) {
   const messages = await res.json();
   const chatArea = document.getElementById('chatArea');
   chatArea.innerHTML = '';
-  messages.forEach(m => appendMessage(m.author, m.text, m.time, m.image));
+  messages.forEach(m => appendMessage(m));
   chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-function appendMessage(author, text, time, image) {
+function appendMessage(msg) {
   const chatArea = document.getElementById('chatArea');
-  const name = localStorage.getItem('userName') || '名無し';
-  const avatar = localStorage.getItem('userAvatar') || '';
-  const isMe = author === name;
+
+  const myId = getUserUUID();
+  const isMe = msg.user_id === myId;
+
+  const author = msg.users?.name || '名無し';
+  const avatar = msg.users?.avatar_url || '';
 
   const bubble = document.createElement('div');
   bubble.className = 'bubble ' + (isMe ? 'right' : 'left');
 
-  // 投稿者行（アイコンと名前、サイズ拡大）
   const authorLine = document.createElement('div');
   authorLine.className = 'author-line';
+
   if (avatar) {
     const img = document.createElement('img');
     img.src = avatar;
     img.className = 'author-avatar';
     authorLine.appendChild(img);
   }
+
   const nameSpan = document.createElement('span');
   nameSpan.textContent = author;
   authorLine.appendChild(nameSpan);
+
   bubble.appendChild(authorLine);
 
-  if (text) {
+  if (msg.text) {
     const textDiv = document.createElement('div');
-    textDiv.innerHTML = escapeHtml(text);
+    textDiv.innerHTML = escapeHtml(msg.text);
     bubble.appendChild(textDiv);
   }
 
-  if (image) {
+  if (msg.image) {
     const img = document.createElement('img');
-    img.src = image;
+    img.src = msg.image;
     img.style.maxWidth = '200px';
     img.style.borderRadius = '8px';
     img.style.marginTop = '6px';
@@ -221,13 +226,14 @@ function appendMessage(author, text, time, image) {
     const timeDiv = document.createElement('div');
     timeDiv.style.fontSize = '10px';
     timeDiv.style.color = '#888';
-    timeDiv.textContent = time ? new Date(time).toLocaleTimeString() : '';
+    timeDiv.textContent = msg.time ? new Date(msg.time).toLocaleTimeString() : '';
     bubble.appendChild(timeDiv);
   }
 
   const wrapper = document.createElement('div');
   wrapper.style.display = 'flex';
   wrapper.style.justifyContent = isMe ? 'flex-end' : 'flex-start';
+
   wrapper.appendChild(bubble);
   chatArea.appendChild(wrapper);
   chatArea.scrollTop = chatArea.scrollHeight;
@@ -241,7 +247,7 @@ function escapeHtml(s) {
 // ===== Socket.io =====
 socket.on('message', data => {
   if (String(data.room_id) !== String(window.currentRoomId)) return;
-  appendMessage(data.author, data.text, data.time, data.image);
+  appendMessage(data);
 });
 
 // ==========================
@@ -331,6 +337,7 @@ window.addEventListener('DOMContentLoaded', () => {
     socket.emit('message', {
       roomId: window.currentRoomId,
       author: localStorage.getItem('userName') || '名無し',
+      user_id: getUserUUID(),
       text,
       image: selectedImageUrl
     });
