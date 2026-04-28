@@ -123,22 +123,12 @@ app.post('/rooms/:id/check-password', async (req, res) => {
 
 app.get('/rooms/:id/messages', async (req, res) => {
   const roomId = Number(req.params.id);
-
   const { data, error } = await supabase
     .from('messages')
-    .select(`
-      *,
-      users (
-        id,
-        name,
-        avatar_url
-      )
-    `)
+    .select('*')
     .eq('room_id', roomId)
     .order('time', { ascending: true });
-
   if (error) return res.status(500).json({ error });
-
   res.json(data);
 });
 
@@ -183,31 +173,26 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 io.on('connection', (socket) => {
-
   socket.on('joinRoom', (roomId) => {
     socket.join(String(roomId));
   });
-
   socket.on('leaveRoom', (roomId) => {
     socket.leave(String(roomId));
   });
-
   socket.on('message', async (data) => {
     const msg = {
       id: Date.now(),
       room_id: Number(data.roomId),
-      user_id: data.user_id,
+      author: data.author,
       text: data.text,
       image: data.image || null,
       time: new Date().toISOString()
     };
-
     await supabase.from('messages').insert(msg);
     io.to(String(data.roomId)).emit('message', msg);
   });
-
-}); // ← 必要！！
-
-server.listen(port, () => {
-  console.log(`Server running on port ${port}`);
 });
+
+server.listen(port, () => console.log(`Server running on port ${port}`));
+
+
